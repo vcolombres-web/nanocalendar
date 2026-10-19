@@ -1,0 +1,19 @@
+{
+  "name": "NanoCalendar",
+  "short_name": "NanoCalendar",
+  "description": "Agenda de entrenamientos, asistentes y cobros.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EDF0F5",
+  "theme_color": "#2346E6",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
