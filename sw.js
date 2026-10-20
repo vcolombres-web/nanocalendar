@@ -1,5 +1,5 @@
-const CACHE = "nanocalendar-v4";
-const APP_FILES = ["./", "./manifest.json", "./icon.svg", "./sw.js", "./auth.js"];
+const CACHE = "nanocalendar-v5";
+const APP_FILES = ["./", "./index.html", "./manifest.json", "./icon.svg", "./sw.js", "./auth.js"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_FILES)));
@@ -19,7 +19,8 @@ self.addEventListener("fetch", event => {
   if (event.request.method !== "GET" || new URL(event.request.url).origin !== self.location.origin) return;
 
   const url = new URL(event.request.url);
-  const isAppPage = event.request.mode === "navigate" || url.pathname.endsWith("/index.html");
+  const isPublicPage = url.pathname.endsWith("/public-reservas.html") || url.pathname.endsWith("/reservas-admin.html");
+  const isAppPage = !isPublicPage && (event.request.mode === "navigate" || url.pathname.endsWith("/index.html"));
 
   if (isAppPage) {
     event.respondWith(
