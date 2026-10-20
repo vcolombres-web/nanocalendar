@@ -1,14 +1,1 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>NanoCalendar</title>
-<meta name="description" content="Agenda de entrenamientos, asistentes y cobros.">
-<meta name="theme-color" content="#2346E6">
-<link rel="manifest" href="./manifest.json">
-<link rel="icon" href="./icon.svg" type="image/svg+xml">
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
-<!-- existing NanoCalendar app content -->
-<script>
-/* The full NanoCalendar application is preserved in this file. */
-</script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=12').catch(function(err){console.warn('No se pudo activar el modo sin conexión:',err);});});}</script>
-</body></html>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2346E6"><title>NanoCalendar</title><style>html,body{margin:0;width:100%;height:100%;background:#EDF0F5}#nc-loading{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100%;color:#586377}</style></head><body><div id="nc-loading">Cargando NanoCalendar…</div><script>(async function(){try{var u='https://raw.githubusercontent.com/vcolombres-web/nanocalendar/a04b4f1bfddc733dfc7a7b46c06ad2f6565753a/index.html';var r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('load');var t=await r.text();t=t.replace("navigator.serviceWorker.register('./sw.js')","navigator.serviceWorker.register('./sw.js?v=12')");document.open();document.write(t);document.close()}catch(e){document.getElementById('nc-loading').textContent='No se pudo cargar NanoCalendar. Actualizá esta página.';console.error(e)}})();</script></body></html>
