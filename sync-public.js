@@ -5,42 +5,64 @@ function run(){
     if(!window.firebase||!firebase.apps.length)return;
     var auth=firebase.auth(),db=firebase.firestore();
     auth.onAuthStateChanged(async function(user){
-      if(!user)return;
+      if(!user||user.isAnonymous)return;
       try{
-        var shared=await db.collection('sharedAgenda').doc('estado').get();
-        if(!shared.exists)return;
-        var cloud=shared.data().data||{};
-        var publicTurns=Array.isArray(cloud.turnos)?cloud.turnos.filter(function(t){return t&&t.reservaPublicaId}):[];
-        var publicClients=Array.isArray(cloud.clientes)?cloud.clientes.filter(function(c){return c&&String(c.id||'').indexOf('pub-')===0}):[];
-        if(!publicTurns.length)return;
+        var sharedRef=db.collection('sharedAgenda').doc('estado');
+        var shared=await sharedRef.get();
+        var cloud=shared.exists&&shared.data().data?shared.data().data:{};
+        cloud.turnos=Array.isArray(cloud.turnos)?cloud.turnos.slice():[];
+        cloud.clientes=Array.isArray(cloud.clientes)?cloud.clientes.slice():[];
+        cloud.servicios=Array.isArray(cloud.servicios)?cloud.servicios.slice():[];
 
-        var col=db.collection('data/users/'+user.uid);
-        var snap=await col.get(),state=null,months={};
-        snap.docs.forEach(function(doc){
-          var x=doc.data();
-          if(doc.id==='estado')state=x;
-          else if(doc.id.indexOf('t-')===0)months[doc.id.slice(2)]=Array.isArray(x.t)?x.t.slice():[];
-        });
-        if(!state)state={v:2,demo:false,servicios:[],clientes:[],pagos:[],packs:[],aj:{ini:7,fin:21,tema:'auto'}};
-        state.clientes=Array.isArray(state.clientes)?state.clientes:[];
-        state.servicios=Array.isArray(state.servicios)?state.servicios:[];
-        state.pagos=Array.isArray(state.pagos)?state.pagos:[];
-        state.packs=Array.isArray(state.packs)?state.packs:[];
-        state.aj=Object.assign({ini:7,fin:21,tema:'auto'},state.aj||{});
+        var rs=await db.collection('publicReservations').get();
+        if(rs.empty)return;
 
-        var stateChanged=false;
-        publicClients.forEach(function(c){
-          if(!state.clientes.some(function(x){return x.id===c.id})){state.clientes.push(c);stateChanged=true}
-        });
-        if(stateChanged)await col.doc('estado').set(state);
+        var service=cloud.servicios[0];
+        if(!service)return;
 
-        var changed={};
-        publicTurns.forEach(function(t){
-          var month=String(t.fecha||'').slice(0,7);if(!month)return;
-          months[month]=Array.isArray(months[month])?months[month]:[];
-          if(!months[month].some(function(x){return x.reservaPublicaId===t.reservaPublicaId})){months[month].push(t);changed[month]=true}
+        var changed=false;
+        rs.forEach(function(doc){
+          var r=doc.data()||{};
+          if(!r.date||!r.time||!r.name)return;
+          var rid=doc.id;
+          var cid='pub-'+rid;
+          if(!cloud.clientes.some(function(c){return c&&c.id===cid})){ 
+            cloud.clientes.push({
+              id:cid,
+              nombre:String(r.name),
+              tel:String(r.phone||''),
+              pack:0,
+              packDesde:String(r.date),
+              notas:'Reserva realizada desde NanoCalendar público.',
+              alta:String(r.date),
+              reservaPublicaId:rid
+            });
+            changed=true;
+          }
+          if(!cloud.turnos.some(function(t){return t&&t.reservaPublicaId===rid})){ 
+            cloud.turnos.push({
+              id:'pubturn-'+rid,
+              clienteId:cid,
+              servicioId:service.id,
+              fecha:String(r.date),
+              hora:String(r.time),
+              min:Number(service.min)||60,
+              lugar:'Gimnasio',
+              estado:'confirmado',
+              notas:'Reserva pública',
+              serie:'',
+              reservaPublicaId:rid
+            });
+            changed=true;
+          }
         });
-        await Promise.all(Object.keys(changed).map(function(month){return col.doc('t-'+month).set({t:months[month]})}));
+
+        if(changed){
+          await sharedRef.set({
+            data:cloud,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
       }catch(e){console.error('sync public reservations',e)}
     });
   }catch(e){console.error('sync-public boot',e)}
