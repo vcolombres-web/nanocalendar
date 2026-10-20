@@ -1,0 +1,118 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Administrar reservas · NanoCalendar</title><style>:root{--bg:#edf0f5;--card:#fff;--ink:#0f1726;--muted:#586377;--line:#d3dae5;--accent:#2346e6;--ok:#1b7f4f;--bad:#c1243f}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:720px;margin:auto;padding:24px 16px 50px}h1{font-size:36px;line-height:1;margin:0}.sub{color:var(--muted);margin:8px 0 22px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}h2{font-size:20px;margin:0 0 12px}.slots{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.slotrow{display:grid;grid-template-columns:1fr auto;gap:8px}.slotrow input,input[type=email],input[type=password]{width:100%;min-height:46px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:16px}.btn{min-height:46px;padding:0 15px;border:0;border-radius:11px;background:var(--accent);color:#fff;font-weight:800;cursor:pointer}.btn.alt{background:#e2e7ef;color:var(--ink)}.btn.bad{background:#f9d9de;color:#97203a}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions .btn{flex:1}.note{font-size:13px;color:var(--muted)}.msg{padding:11px 13px;border-radius:11px;margin-top:12px;background:#dae2ff}.ok{background:#dff2e8;color:#145f3a}.err{background:#f9d9de;color:#97203a}.reservation{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}.reservation:last-child{border-bottom:0}.time{font-size:20px;font-weight:800}.name{font-weight:700}.meta{font-size:12px;color:var(--muted)}.count{font-size:12px;color:var(--muted)}.hidden{display:none!important}@media(max-width:520px){.reservation{grid-template-columns:65px 1fr}.slots{grid-template-columns:1fr}.slotrow{grid-template-columns:1fr}}</style></head><body><main class="wrap"><h1>Reservas</h1><p class="sub">Configurá los horarios y pasá las reservas a tu NanoCalendar.</p><section id="login" class="card"><h2>Acceso privado</h2><input id="email" type="email" placeholder="Correo" autocomplete="username"><br><br><input id="pass" type="password" placeholder="Contraseña" autocomplete="current-password"><div class="actions"><button class="btn" id="loginBtn">Ingresar</button></div><div id="loginMsg" class="msg hidden"></div></section><section id="app" class="hidden"><section class="card"><h2>Horarios de los sábados</h2><p class="note">Las personas pueden reservarse varias veces en el mismo horario.</p><div id="slotEditor" class="slots"></div><div class="actions"><button class="btn alt" id="addSlot">Agregar horario</button><button class="btn" id="saveSlots">Guardar horarios</button></div><div id="saveMsg" class="msg hidden"></div></section><section class="card"><h2>Reservas</h2><div id="summary" class="note">Cargando…</div><div id="list"></div><div id="syncMsg" class="msg hidden"></div></section></section></main><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script><script>const cfg={apiKey:'AIzaSyA6uZNys0TFHduq90JSeRB9cOzJjBkpKTs',authDomain:'nanocalendar17.firebaseapp.com',projectId:'nanocalendar17',storageBucket:'nanocalendar17.firebasestorage.app',messagingSenderId:'1054350803625',appId:'1:1054350803625:web:8b6a226d02c15620255fb8'};firebase.initializeApp(cfg);const db=firebase.firestore(),auth=firebase.auth();const $=id=>document.getElementById(id);let slots=['10:00','11:00'],reservations=[];function msg(id,text,kind=''){const e=$(id);e.textContent=text;e.className='msg '+kind;e.classList.remove('hidden')}function renderSlots(){$('slotEditor').innerHTML=slots.map((s,i)=>`<div class="slotrow"><input type="time" value="${s}" data-i="${i}"><button class="btn bad" data-del="${i}">Quitar</button></div>`).join('');document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{slots.splice(Number(b.dataset.del),1);renderSlots()})}async function syncSharedAgenda(){const ref=db.collection('sharedAgenda').doc('estado');const snap=await ref.get();let d=snap.exists&&snap.data().data?snap.data().data:null;if(!d)d={v:2,demo:false,servicios:[],clientes:[],turnos:[],pagos:[],packs:[],aj:{ini:7,fin:21,tema:'auto'}};d.servicios=Array.isArray(d.servicios)?d.servicios:[];d.clientes=Array.isArray(d.clientes)?d.clientes:[];d.turnos=Array.isArray(d.turnos)?d.turnos:[];d.pagos=Array.isArray(d.pagos)?d.pagos:[];d.packs=Array.isArray(d.packs)?d.packs:[];d.aj=Object.assign({ini:7,fin:21,tema:'auto'},d.aj||{});let sv=d.servicios.find(x=>x.id==='sv3');if(!sv){sv={id:'sv3',nombre:'Grupal',min:60,c:2};d.servicios.push(sv)}let added=0;reservations.forEach(r=>{if(d.turnos.some(t=>t.reservaPublicaId===r.id))return;const cid='pub-'+r.id;let c=d.clientes.find(x=>x.id===cid);if(!c){c={id:cid,nombre:r.name,tel:r.phone||'',pack:0,packDesde:r.date,notas:'Reserva realizada desde NanoCalendar público.',alta:r.date};d.clientes.push(c)}d.turnos.push({id:'pubturn-'+r.id,clienteId:cid,servicioId:sv.id,fecha:r.date,hora:r.time,min:sv.min||60,lugar:'Gimnasio',estado:'confirmado',notas:'Reserva pública',serie:'',reservaPublicaId:r.id});added++});if(added)await ref.set({data:d,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});return added}async function load(){try{const c=await db.collection('publicConfig').doc('reservas').get();if(c.exists&&Array.isArray(c.data().slots)&&c.data().slots.length)slots=c.data().slots.map(String)}catch(e){console.error('config',e)}renderSlots();try{const q=await db.collection('publicReservations').get();reservations=q.docs.map(d=>({id:d.id,...d.data()}));reservations.sort((a,b)=>(String(a.date||'')+String(a.time||'')).localeCompare(String(b.date||'')+String(b.time||'')));renderReservations();msg('syncMsg','Las reservas nuevas pasan solas a tu agenda cuando la abrís con tu usuario.','ok')}catch(e){console.error('reservations',e);msg('summary','No se pudieron leer las reservas. Revisá las reglas de Firebase.','err')}}function renderReservations(){const counts={};reservations.forEach(r=>{const k=r.date+'|'+r.time;counts[k]=(counts[k]||0)+1});$('summary').textContent=reservations.length+' reservas registradas';$('list').innerHTML=reservations.length?reservations.map(r=>`<div class="reservation"><div class="time">${r.time}</div><div><div class="name">${esc(r.name)}</div><div class="meta">${r.date}${r.phone?' · '+esc(r.phone):''}</div></div><div class="count">${counts[r.date+'|'+r.time]} en horario</div></div>`).join(''):'<p class="note">Todavía no hay reservas.</p>'}function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}$('loginBtn').onclick=async()=>{try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('pass').value);$('login').classList.add('hidden');$('app').classList.remove('hidden');await load()}catch(e){msg('loginMsg','Correo o contraseña incorrectos.','err')}};$('addSlot').onclick=()=>{slots.push('12:00');renderSlots()};$('saveSlots').onclick=async()=>{const vals=[...document.querySelectorAll('#slotEditor input')].map(x=>x.value).filter(Boolean).sort();if(!vals.length){msg('saveMsg','Dejá al menos un horario.','err');return}slots=vals;try{await db.collection('publicConfig').doc('reservas').set({slots,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});msg('saveMsg','Horarios guardados.','ok')}catch(e){console.error('save slots',e);msg('saveMsg','No se pudieron guardar. Revisá las reglas de Firebase.','err')}};</script></body></html>(function(){
+'use strict';
+
+/*
+  Importa las reservas públicas (colección publicReservations) a la agenda privada
+  de quien está logueado (data/users/{uid}).
+  - Solo corre con usuarios con sesión (no anónimos).
+  - Cada reserva se importa una sola vez: queda marcada con importada:true.
+  - Si llega una reserva nueva con la agenda abierta, se importa sola.
+*/
+
+function esperarFirebase(cb,intentos){
+  intentos=intentos||0;
+  if(window.firebase&&firebase.apps&&firebase.apps.length)return cb();
+  if(intentos>100)return;
+  setTimeout(function(){esperarFirebase(cb,intentos+1)},100);
+}
+
+function run(){
+  var auth=firebase.auth(),db=firebase.firestore();
+  var unsub=null,busy=false,again=false,lastDocs=[],lastUser=null;
+
+  function valida(r){
+    return r&&!r.importada&&r.date&&r.time&&r.name&&r.status!=='cancelada'&&r.status!=='cancelado';
+  }
+
+  async function procesar(){
+    if(busy){again=true;return}
+    busy=true;
+    try{
+      do{
+        again=false;
+        var user=lastUser;
+        if(!user||user.isAnonymous)break;
+        var pend=lastDocs.filter(function(d){return valida(d.data())});
+        if(!pend.length)break;
+
+        var col=db.collection('data/users/'+user.uid);
+        var snap=await col.get();
+        var estado=null,conocidos={};
+        snap.docs.forEach(function(doc){
+          var x=doc.data();
+          if(doc.id==='estado')estado=x;
+          else if(doc.id.indexOf('t-')===0&&Array.isArray(x.t)){
+            x.t.forEach(function(t){if(t&&t.reservaPublicaId)conocidos[t.reservaPublicaId]=true});
+          }
+        });
+        // Si la agenda todavía no creó su estado, no hay dónde importar. Se reintenta en la próxima carga.
+        if(!estado)break;
+
+        var servicios=Array.isArray(estado.servicios)?estado.servicios:[];
+        var sv=servicios.find(function(s){return s.id==='sv3'})||servicios[0]||{id:'sv3',min:60};
+        var sid=sv.id,dur=sv.min||60;
+
+        var nuevos=pend.filter(function(d){return !conocidos[d.id]});
+
+        // 1) Asistentes nuevos
+        var estRef=col.doc('estado');
+        await db.runTransaction(async function(tx){
+          var s=await tx.get(estRef);
+          if(!s.exists)return;
+          var st=s.data(),cs=Array.isArray(st.clientes)?st.clientes.slice():[],add=false;
+          nuevos.forEach(function(d){
+            var r=d.data(),cid='pub-'+d.id;
+            if(!cs.some(function(c){return c.id===cid})){
+              cs.push({id:cid,nombre:r.name,tel:r.phone||'',pack:0,packDesde:r.date,notas:'Reserva realizada desde NanoCalendar público.',alta:r.date});
+              add=true;
+            }
+          });
+          if(add){st.clientes=cs;tx.set(estRef,st)}
+        });
+
+        // 2) Turnos, agrupados por mes
+        var porMes={};
+        nuevos.forEach(function(d){
+          var r=d.data(),m=String(r.date).slice(0,7);
+          (porMes[m]=porMes[m]||[]).push({
+            id:'pubturn-'+d.id,clienteId:'pub-'+d.id,servicioId:sid,
+            fecha:r.date,hora:r.time,min:dur,lugar:'Gimnasio',
+            estado:'confirmado',notas:'Reserva pública',serie:'',reservaPublicaId:d.id
+          });
+        });
+        for(var m in porMes){
+          await (function(mes,lista){
+            var ref=col.doc('t-'+mes);
+            return db.runTransaction(async function(tx){
+              var s=await tx.get(ref);
+              var arr=s.exists&&Array.isArray(s.data().t)?s.data().t.slice():[],add=false;
+              lista.forEach(function(t){
+                if(!arr.some(function(x){return x.reservaPublicaId===t.reservaPublicaId})){arr.push(t);add=true}
+              });
+              if(add)tx.set(ref,{t:arr});
+            });
+          })(m,porMes[m]);
+        }
+
+        // 3) Marcar como importadas (incluye las que ya estaban en la agenda)
+        await Promise.all(pend.map(function(d){
+          return d.ref.update({importada:true,importadaAt:firebase.firestore.FieldValue.serverTimestamp()});
+        }));
+      }while(again);
+    }catch(e){console.error('sync public reservations',e)}
+    busy=false;
+  }
+
+  auth.onAuthStateChanged(function(user){
+    if(unsub){unsub();unsub=null}
+    lastUser=user;lastDocs=[];
+    if(!user||user.isAnonymous)return;
+    unsub=db.collection('publicReservations').onSnapshot(function(snap){
+      lastDocs=snap.docs;procesar();
+    },function(e){console.error('publicReservations',e)});
+  });
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){esperarFirebase(run)},{once:true});
+else esperarFirebase(run);
+})();
