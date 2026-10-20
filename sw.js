@@ -1,5 +1,5 @@
-const CACHE = "nanocalendar-v8";
-const APP_FILES = ["./", "./index.html", "./manifest.json", "./icon.svg", "./sw.js", "./sync-public.js"];
+const CACHE = "nanocalendar-v9";
+const APP_FILES = ["./", "./index.html", "./manifest.json", "./icon.svg", "./sw.js", "./auth.js", "./sync-public.js"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_FILES)));
@@ -27,8 +27,9 @@ self.addEventListener("fetch", event => {
       fetch(event.request).then(async response => {
         if (!response || !response.ok) return response;
         let text = await response.text();
-        const inject = '<script src="./sync-public.js?v=8"></script>';
-        if (!text.includes('sync-public.js')) text = text.replace('</head>', inject + '</head>');
+        const inject = '<script src="./auth.js?v=9"></script><script src="./sync-public.js?v=9"></script>';
+        if (!text.includes('auth.js')) text = text.replace('</head>', inject + '</head>');
+        else if (!text.includes('sync-public.js')) text = text.replace('</head>', '<script src="./sync-public.js?v=9"></script></head>');
         return new Response(text, {status: response.status, statusText: response.statusText, headers: response.headers});
       }).catch(() => caches.match("./index.html"))
     );
