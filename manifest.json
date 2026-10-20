@@ -1,26 +1,18 @@
 {
   "name": "NanoCalendar",
   "short_name": "NanoCalendar",
-  "id": "./",
   "description": "Agenda de entrenamientos, asistentes y cobros.",
-  "lang": "es-AR",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
+  "lang": "es-AR",
   "display": "standalone",
   "background_color": "#EDF0F5",
   "theme_color": "#2346E6",
   "icons": [
-    {
-      "src": "./icon-192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./icon-512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
