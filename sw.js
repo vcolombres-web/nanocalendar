@@ -1,8 +1,7 @@
-const CACHE = "nanocalendar-v13";
-const APP_FILES = ["./", "./index.html", "./manifest.json", "./icon.svg", "./icon-192.png", "./icon-512.png", "./sw.js", "./auth.js", "./sync-public.js"];
+const CACHE = "nanocalendar-v14";
+const APP_FILES = ["./", "./index.html", "./manifest.json", "./icon.svg", "./icon-192.png", "./icon-512.png", "./sw.js", "./auth.js?v=14", "./sync-public.js?v=14"];
 
 self.addEventListener("install", event => {
-  // Si algún archivo falla, no se cancela la instalación del service worker.
   event.waitUntil(caches.open(CACHE).then(cache => Promise.all(APP_FILES.map(f => cache.add(f).catch(() => null)))));
   self.skipWaiting();
 });
@@ -28,9 +27,9 @@ self.addEventListener("fetch", event => {
       fetch(event.request).then(async response => {
         if (!response || !response.ok) return response;
         let text = await response.text();
-        const inject = '<script src="./auth.js?v=13"></script><script src="./sync-public.js?v=13"></script>';
+        const inject = '<script src="./auth.js?v=14"></script><script src="./sync-public.js?v=14"></script>';
         if (!text.includes('auth.js')) text = text.replace('</head>', inject + '</head>');
-        else if (!text.includes('sync-public.js')) text = text.replace('</head>', '<script src="./sync-public.js?v=13"></script></head>');
+        else if (!text.includes('sync-public.js')) text = text.replace('</head>', '<script src="./sync-public.js?v=14"></script></head>');
         return new Response(text, {status: response.status, statusText: response.statusText, headers: response.headers});
       }).catch(() => caches.match("./index.html"))
     );
