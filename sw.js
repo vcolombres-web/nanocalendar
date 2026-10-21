@@ -28,7 +28,7 @@ self.addEventListener("fetch", event => {
       fetch(event.request).then(async response => {
         if (!response || !response.ok) return response;
         let text = await response.text();
-        const inject = '<script src="./auth.js?v=13"></script><script src="./sync-public.js?v=13"></script>';
+        const inject = '<script src="./auth.js?v=hide1"></script><script src="./sync-public.js?v=13"></script>';
         if (!text.includes('auth.js')) text = text.replace('</head>', inject + '</head>');
         else if (!text.includes('sync-public.js')) text = text.replace('</head>', '<script src="./sync-public.js?v=13"></script></head>');
         return new Response(text, {status: response.status, statusText: response.statusText, headers: response.headers});
